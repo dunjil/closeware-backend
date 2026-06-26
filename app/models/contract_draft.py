@@ -14,6 +14,10 @@ class DraftStatus(str, enum.Enum):
     SENT_TO_COUNTERPARTY = "sent_to_counterparty"  # Sent externally
     AWAITING_COUNTERPARTY_RESPONSE = "awaiting_counterparty_response"  # External, waiting for response
     APPROVED = "approved"  # Final approved version
+    READY_FOR_SIGNING = "ready_for_signing"  # Ready to collect signatures
+    AWAITING_SIGNATURES = "awaiting_signatures"  # Signature requests sent
+    PARTIALLY_SIGNED = "partially_signed"  # Some but not all signed
+    FULLY_EXECUTED = "fully_executed"  # All signatures collected
 
 
 class ContractDraft(Base):
@@ -40,3 +44,4 @@ class ContractDraft(Base):
     discrepancy_reports = relationship("DiscrepancyReport", back_populates="contract_draft", cascade="all, delete-orphan")
     signatures = relationship("Signature", back_populates="contract_draft", cascade="all, delete-orphan")
     internal_reviews = relationship("InternalReview", back_populates="contract_draft", cascade="all, delete-orphan")
+    signature_requests = relationship("SignatureRequest", back_populates="contract_draft", cascade="all, delete-orphan")

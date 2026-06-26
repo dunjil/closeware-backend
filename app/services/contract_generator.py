@@ -1,6 +1,7 @@
 from anthropic import Anthropic
 from app.core.config import settings
 from app.models.deal import Deal
+from app.utils.currency_formatter import format_contract_amount
 from sqlalchemy.orm import Session
 from typing import Dict, Any
 import json
@@ -83,7 +84,7 @@ You have previously generated a contract draft, and the user has provided correc
 - Type: {deal.deal_type.value}
 - Title: {deal.title}
 - Asset Description: {deal.asset_description or 'N/A'}
-- Agreed Price: {deal.agreed_price} {deal.currency if deal.currency else ''}
+- Agreed Price: {format_contract_amount(deal.agreed_price, deal.currency or 'USD') if deal.agreed_price else 'N/A'}
 - Parties: {json.dumps(deal.parties) if deal.parties else 'N/A'}
 
 **Correspondence Trail:**
@@ -180,7 +181,7 @@ Your task is to generate a complete, professional {contract_name} based on the f
 - Type: {deal.deal_type.value}
 - Title: {deal.title}
 - Asset Description: {deal.asset_description or 'N/A'}
-- Agreed Price: {deal.agreed_price} {deal.currency if deal.currency else ''}
+- Agreed Price: {format_contract_amount(deal.agreed_price, deal.currency or 'USD') if deal.agreed_price else 'N/A'}
 - Parties: {json.dumps(deal.parties) if deal.parties else 'N/A'}
 
 **Correspondence Trail:**

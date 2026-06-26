@@ -348,6 +348,88 @@ Closeware – AI-Powered Deal Execution
 
         return self._send_email(user_email, subject, html_body, text_body)
 
+    def send_signature_request(
+        self,
+        signer_email: str,
+        signer_name: str,
+        contract_title: str,
+        contract_draft_id: str,
+        requested_by: str,
+        message: str = None,
+        expires_at: datetime = None
+    ):
+        """Send signature request email"""
+        sign_url = f"{self.frontend_url}/sign/{contract_draft_id}"
+        expires_text = f"by {expires_at.strftime('%B %d, %Y')}" if expires_at else ""
+
+        subject = f"Signature Requested: {contract_title}"
+
+        html_body = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #1A1A18; background: #FAF9F6; margin: 0; padding: 20px; }}
+        .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
+        h1 {{ font-family: 'Georgia', serif; font-size: 24px; font-weight: 400; color: #1A1A18; margin: 0 0 24px 0; }}
+        .contract-info {{ background: #F5F3EE; border-left: 4px solid #D4A017; padding: 16px; margin: 24px 0; border-radius: 4px; }}
+        .message {{ background: #F5F3EE; padding: 16px; margin: 24px 0; border-radius: 8px; font-style: italic; color: #4A4A45; }}
+        .button {{ display: inline-block; background: #D4A017; color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 500; margin: 24px 0; }}
+        .button:hover {{ background: #B8860B; }}
+        .footer {{ margin-top: 32px; padding-top: 24px; border-top: 1px solid #E8E6E0; font-size: 13px; color: #6B6B63; }}
+        .warning {{ color: #C0392B; font-size: 14px; margin-top: 16px; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Signature Requested</h1>
+
+        <p>Hi {signer_name},</p>
+
+        <p><strong>{requested_by}</strong> has requested your signature on the following contract:</p>
+
+        <div class="contract-info">
+            <strong>Contract:</strong> {contract_title}
+        </div>
+
+        {f'<div class="message">"{message}"</div>' if message else ''}
+
+        <p>Please review the contract and sign {expires_text}:</p>
+
+        <a href="{sign_url}" class="button">Review &amp; Sign Contract</a>
+
+        {f'<p class="warning">⏱ This request expires {expires_text}</p>' if expires_text else ''}
+
+        <div class="footer">
+            <p>Closeware – AI-Powered Deal Execution<br>
+            If you have questions, please contact {requested_by}.</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+        text_body = f"""
+Signature Requested: {contract_title}
+
+Hi {signer_name},
+
+{requested_by} has requested your signature on: {contract_title}
+
+{f'Message: "{message}"' if message else ''}
+
+Review and sign the contract here:
+{sign_url}
+
+{f'This request expires {expires_text}' if expires_text else ''}
+
+---
+Closeware – AI-Powered Deal Execution
+"""
+
+        return self._send_email(signer_email, subject, html_body, text_body)
+
 
 # Singleton instance
 email_service = EmailService()

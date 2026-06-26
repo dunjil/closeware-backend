@@ -8,9 +8,9 @@ from app.db.base import Base
 
 
 class SubscriptionTier(str, enum.Enum):
-    LITE = "lite"  # ₦75K/month, 1 deal included, ₦60K per extra
-    PRO = "pro"  # ₦150K/month, 2 deals included, ₦50K per extra
-    ENTERPRISE = "enterprise"  # ₦500K/month, 10 deals included, ₦40K per extra
+    LITE = "lite"  # $180/month, 1 deal included, $145 per extra
+    PRO = "pro"  # $360/month, 2 deals included, $120 per extra
+    ENTERPRISE = "enterprise"  # $1,200/month, 10 deals included, $95 per extra
 
 
 class SubscriptionStatus(str, enum.Enum):
@@ -41,7 +41,8 @@ class Subscription(Base):
     billing_period = Column(Enum(BillingPeriod), nullable=False, default=BillingPeriod.MONTHLY)
     status = Column(Enum(SubscriptionStatus), nullable=False, default=SubscriptionStatus.TRIAL)
 
-    # Pricing (in NGN - Naira)
+    # Pricing (in organization's currency)
+    currency = Column(String(3), nullable=False, default="USD")  # ISO 4217 currency code (USD, EUR, GBP, NGN, AED, etc.)
     base_price = Column(Numeric(precision=12, scale=2), nullable=False)  # Monthly/annual base price
     included_deals = Column(Integer, nullable=False)  # Deals included in base price
     overage_price = Column(Numeric(precision=12, scale=2), nullable=False)  # Price per additional deal
@@ -100,44 +101,75 @@ class Subscription(Base):
         return total
 
     @staticmethod
-    def get_tier_pricing(tier: SubscriptionTier, billing_period: BillingPeriod = BillingPeriod.MONTHLY):
-        """Get pricing details for a subscription tier"""
-        pricing = {
+    def get_tier_pricing(tier: SubscriptionTier, billing_period: BillingPeriod = BillingPeriod.MONTHLY, currency: str = "USD"):
+        """
+        Get pricing details for a subscription tier in specified currency.
+        Global pricing - supports USD, EUR, GBP, NGN, AED, and more.
+        """
+        # Base pricing in USD (global standard)
+        base_pricing_usd = {
             SubscriptionTier.LITE: {
                 BillingPeriod.MONTHLY: {
-                    "base_price": 75000,
+                    "base_price": 180,
                     "included_deals": 1,
-                    "overage_price": 60000
+                    "overage_price": 145
                 },
                 BillingPeriod.ANNUAL: {
-                    "base_price": 750000,  # 10 months price (2 months free)
+                    "base_price": 1800,  # 10 months price (2 months free)
                     "included_deals": 12,
-                    "overage_price": 60000
+                    "overage_price": 145
                 }
             },
             SubscriptionTier.PRO: {
                 BillingPeriod.MONTHLY: {
-                    "base_price": 150000,
+                    "base_price": 360,
                     "included_deals": 2,
-                    "overage_price": 50000
+                    "overage_price": 120
                 },
                 BillingPeriod.ANNUAL: {
-                    "base_price": 1500000,  # 10 months price (2 months free)
+                    "base_price": 3600,  # 10 months price (2 months free)
                     "included_deals": 24,
-                    "overage_price": 50000
+                    "overage_price": 120
                 }
             },
             SubscriptionTier.ENTERPRISE: {
                 BillingPeriod.MONTHLY: {
-                    "base_price": 500000,
+                    "base_price": 1200,
                     "included_deals": 10,
-                    "overage_price": 40000
+                    "overage_price": 95
                 },
                 BillingPeriod.ANNUAL: {
-                    "base_price": 5000000,  # 10 months price
+                    "base_price": 12000,  # 10 months price
                     "included_deals": 120,
-                    "overage_price": 40000
+                    "overage_price": 95
                 }
             }
         }
-        return pricing[tier][billing_period]
+
+        # Currency conversion multipliers (approximate, update with real-time rates in production)
+        currency_multipliers = {
+            "USD": 1.0,
+            "EUR": 0.92,
+            "GBP": 0.81,
+            "NGN": 416.0,  # Nigerian Naira
+            "AED": 3.67,   # UAE Dirham
+            "ZAR": 18.5,   # South African Rand
+            "KES": 130.0,  # Kenyan Shilling
+            "GHS": 12.0,   # Ghanaian Cedi
+            "EGP": 31.0,   # Egyptian Pound
+            "SAR": 3.75,   # Saudi Riyal
+            "QAR": 3.64,   # Qatari Riyal
+        }
+
+        # Get base pricing in USD
+        usd_pricing = base_pricing_usd[tier][billing_period]
+
+        # Convert to requested currency
+        multiplier = currency_multipliers.get(currency.upper(), 1.0)
+
+        return {
+            "base_price": round(usd_pricing["base_price"] * multiplier, 2),
+            "included_deals": usd_pricing["included_deals"],
+            "overage_price": round(usd_pricing["overage_price"] * multiplier, 2),
+            "currency": currency.upper()
+        }
