@@ -353,13 +353,14 @@ Closeware – AI-Powered Deal Execution
         signer_email: str,
         signer_name: str,
         contract_title: str,
-        contract_draft_id: str,
+        request_id: str,
+        access_token: str,
         requested_by: str,
         message: str = None,
         expires_at: datetime = None
     ):
         """Send signature request email"""
-        sign_url = f"{self.frontend_url}/sign/{contract_draft_id}"
+        sign_url = f"{self.frontend_url}/sign/{request_id}?token={access_token}"
         expires_text = f"by {expires_at.strftime('%B %d, %Y')}" if expires_at else ""
 
         subject = f"Signature Requested: {contract_title}"

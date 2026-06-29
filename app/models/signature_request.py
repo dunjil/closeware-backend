@@ -41,6 +41,7 @@ class SignatureRequest(Base):
     # Request details
     status = Column(Enum(SignatureRequestStatus), nullable=False, default=SignatureRequestStatus.PENDING)
     request_message = Column(String, nullable=True)
+    access_token = Column(String, nullable=False, unique=True, default=lambda: str(uuid.uuid4()))  # Secure token for signing link
 
     # Tracking
     requested_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)

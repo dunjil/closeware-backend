@@ -60,10 +60,38 @@ async def mark_contract_ready_for_signing(
     """
     Mark contract as ready for signing and send signature requests.
     """
+    # Validate signers list is not empty
+    if not request.signers or len(request.signers) == 0:
+        raise HTTPException(status_code=400, detail="At least one signer is required")
+
     # Get contract draft
     draft = db.query(ContractDraft).filter(ContractDraft.id == contract_draft_id).first()
     if not draft:
         raise HTTPException(status_code=404, detail="Contract draft not found")
+
+    # Validate contract status (must be draft or reviewed to mark ready for signing)
+    if draft.status not in [DraftStatus.DRAFT, DraftStatus.REVIEWED]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Contract must be in draft or reviewed status to mark ready for signing. Current status: {draft.status.value}"
+        )
+
+    # TODO: Add authorization check - verify current_user has access to the deal
+    # This requires loading draft.deal and checking organization membership
+
+    # Check for duplicate signature requests (same email on same contract)
+    existing_requests = db.query(SignatureRequest).filter(
+        SignatureRequest.contract_draft_id == contract_draft_id,
+        SignatureRequest.status == SignatureRequestStatus.PENDING
+    ).all()
+    existing_emails = {req.signer_email for req in existing_requests}
+
+    for signer_data in request.signers:
+        if signer_data.signer_email in existing_emails:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Signature request already exists for {signer_data.signer_email}"
+            )
 
     # Update status
     draft.status = DraftStatus.AWAITING_SIGNATURES
@@ -85,6 +113,7 @@ async def mark_contract_ready_for_signing(
         )
 
         db.add(sig_request)
+        db.flush()  # Get the request ID and access_token
         signature_requests.append(sig_request)
 
         # Send email notification
@@ -93,7 +122,8 @@ async def mark_contract_ready_for_signing(
                 signer_email=signer_data.signer_email,
                 signer_name=signer_data.signer_name,
                 contract_title=draft.title,
-                contract_draft_id=str(contract_draft_id),
+                request_id=str(sig_request.id),
+                access_token=sig_request.access_token,
                 requested_by=current_user.full_name,
                 message=signer_data.request_message,
                 expires_at=expires_at
@@ -128,15 +158,21 @@ async def get_signature_requests(
 async def fulfill_signature_request(
     request_id: UUID,
     sign_request: SignContractRequest,
+    token: str,  # Access token for security
     db: Session = Depends(get_db)
 ):
     """
     Fulfill a signature request by signing.
+    Requires valid access token sent in the signature request email.
     """
     # Get signature request
     sig_request = db.query(SignatureRequest).filter(SignatureRequest.id == request_id).first()
     if not sig_request:
         raise HTTPException(status_code=404, detail="Signature request not found")
+
+    # Validate access token
+    if sig_request.access_token != token:
+        raise HTTPException(status_code=403, detail="Invalid access token")
 
     # Check if expired
     if sig_request.expires_at and datetime.utcnow() > sig_request.expires_at:

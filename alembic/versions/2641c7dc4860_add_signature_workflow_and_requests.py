@@ -47,6 +47,7 @@ def upgrade() -> None:
         sa.Column('signer_role', postgresql.ENUM('buyer', 'seller', 'witness', 'guarantor', 'other', name='signaturerole'), nullable=False),
         sa.Column('status', postgresql.ENUM('pending', 'signed', 'declined', 'expired', name='signaturerequeststatus'), nullable=False),
         sa.Column('request_message', sa.String(), nullable=True),
+        sa.Column('access_token', sa.String(), nullable=False, unique=True),
         sa.Column('requested_by_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('users.id'), nullable=False),
         sa.Column('requested_at', sa.DateTime(), nullable=False),
         sa.Column('expires_at', sa.DateTime(), nullable=True),
@@ -60,10 +61,12 @@ def upgrade() -> None:
     op.create_index('ix_signature_requests_contract_draft_id', 'signature_requests', ['contract_draft_id'])
     op.create_index('ix_signature_requests_signer_email', 'signature_requests', ['signer_email'])
     op.create_index('ix_signature_requests_status', 'signature_requests', ['status'])
+    op.create_index('ix_signature_requests_access_token', 'signature_requests', ['access_token'], unique=True)
 
 
 def downgrade() -> None:
     # Drop indexes
+    op.drop_index('ix_signature_requests_access_token', 'signature_requests')
     op.drop_index('ix_signature_requests_status', 'signature_requests')
     op.drop_index('ix_signature_requests_signer_email', 'signature_requests')
     op.drop_index('ix_signature_requests_contract_draft_id', 'signature_requests')
