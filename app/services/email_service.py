@@ -431,6 +431,91 @@ Closeware – AI-Powered Deal Execution
 
         return self._send_email(signer_email, subject, html_body, text_body)
 
+    def send_contract_fully_executed_notification(
+        self,
+        owner_email: str,
+        owner_name: str,
+        contract_title: str,
+        contract_draft_id: str,
+        deal_name: str
+    ):
+        """Send notification when all signatures have been collected"""
+        contract_url = f"{self.frontend_url}/deals/{contract_draft_id}"
+
+        subject = f"✅ All Signatures Collected: {contract_title}"
+
+        html_body = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #1A1A18; background: #FAF9F6; margin: 0; padding: 20px; }}
+        .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
+        h1 {{ font-family: 'Georgia', serif; font-size: 24px; font-weight: 400; color: #1A1A18; margin: 0 0 24px 0; }}
+        .success-badge {{ display: inline-block; background: rgba(74, 124, 89, 0.1); color: #4A7C59; padding: 8px 16px; border-radius: 6px; font-weight: 600; margin-bottom: 24px; }}
+        .contract-info {{ background: #F5F3EE; border-left: 4px solid #4A7C59; padding: 16px; margin: 24px 0; border-radius: 4px; }}
+        .button {{ display: inline-block; background: #D4A017; color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 500; margin: 24px 0; }}
+        .button:hover {{ background: #B8860B; }}
+        .footer {{ margin-top: 32px; padding-top: 24px; border-top: 1px solid #E8E6E0; font-size: 13px; color: #6B6B63; }}
+        .checkmark {{ font-size: 48px; color: #4A7C59; text-align: center; margin-bottom: 16px; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="checkmark">✅</div>
+        <h1>Contract Fully Executed</h1>
+
+        <div class="success-badge">All Signatures Collected</div>
+
+        <p>Hi {owner_name},</p>
+
+        <p>Great news! All required signatures have been collected for:</p>
+
+        <div class="contract-info">
+            <strong>Contract:</strong> {contract_title}<br>
+            <strong>Deal:</strong> {deal_name}
+        </div>
+
+        <p>The contract is now <strong>fully executed</strong> and legally binding.</p>
+
+        <a href="{contract_url}" class="button">View Signed Contract</a>
+
+        <p style="color: #6B6B63; font-size: 14px; margin-top: 24px;">
+            Next steps: Download the final signed contract and archive it according to your company's document retention policy.
+        </p>
+
+        <div class="footer">
+            <p>Closeware – AI-Powered Contract Verification<br>
+            Never sign a contract that doesn't match reality.</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+        text_body = f"""
+Contract Fully Executed - All Signatures Collected
+
+Hi {owner_name},
+
+Great news! All required signatures have been collected for:
+
+Contract: {contract_title}
+Deal: {deal_name}
+
+The contract is now fully executed and legally binding.
+
+View signed contract: {contract_url}
+
+Next steps: Download the final signed contract and archive it according to your company's document retention policy.
+
+---
+Closeware – AI-Powered Contract Verification
+"""
+
+        return self._send_email(owner_email, subject, html_body, text_body)
+
 
 # Singleton instance
 email_service = EmailService()

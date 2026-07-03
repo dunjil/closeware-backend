@@ -4,6 +4,7 @@ from app.models.deal import Deal
 from app.models.correspondence import Correspondence
 from app.models.document import Document
 from app.models.contract_draft import ContractDraft, DraftStatus
+from app.models.contract_status_history import ContractStatusHistory
 from app.models.discrepancy_report import DiscrepancyReport, DiscrepancyItem
 from app.models.internal_review import InternalReview, ReviewAction
 from app.models.deal_collaborator import DealCollaborator, CollaboratorRole
@@ -22,6 +23,7 @@ __all__ = [
     "Document",
     "ContractDraft",
     "DraftStatus",
+    "ContractStatusHistory",
     "DiscrepancyReport",
     "DiscrepancyItem",
     "InternalReview",

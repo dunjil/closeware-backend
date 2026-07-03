@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, deals, correspondence, documents, contract_drafts, comparison, organizations, contract_generation, contract_fixes, signatures, internal_reviews, external_invites, subscriptions, signup, signature_requests
+from app.api.v1.endpoints import auth, deals, correspondence, documents, contract_drafts, comparison, organizations, contract_generation, contract_fixes, signatures, internal_reviews, external_invites, subscriptions, signup, signature_requests, audit_trail
 
 api_router = APIRouter()
 
@@ -18,3 +18,4 @@ api_router.include_router(signature_requests.router, prefix="/signature-requests
 api_router.include_router(internal_reviews.router, prefix="/internal-reviews", tags=["internal-reviews"])
 api_router.include_router(external_invites.router, prefix="/external", tags=["external-invites"])
 api_router.include_router(subscriptions.router, prefix="/subscriptions", tags=["subscriptions"])
+api_router.include_router(audit_trail.router, prefix="/audit-trail", tags=["audit-trail"])

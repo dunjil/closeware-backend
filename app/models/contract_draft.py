@@ -45,3 +45,4 @@ class ContractDraft(Base):
     signatures = relationship("Signature", back_populates="contract_draft", cascade="all, delete-orphan")
     internal_reviews = relationship("InternalReview", back_populates="contract_draft", cascade="all, delete-orphan")
     signature_requests = relationship("SignatureRequest", back_populates="contract_draft", cascade="all, delete-orphan")
+    status_history = relationship("ContractStatusHistory", back_populates="contract_draft", cascade="all, delete-orphan", order_by="ContractStatusHistory.changed_at.desc()")

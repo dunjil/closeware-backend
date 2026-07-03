@@ -211,6 +211,23 @@ async def fulfill_signature_request(
 
     if all_signed:
         draft.status = DraftStatus.FULLY_EXECUTED
+
+        # Send notification to contract owner
+        try:
+            # Get the user who requested signatures (contract owner)
+            first_request = all_requests[0]
+            contract_owner = first_request.requested_by
+
+            email_service.send_contract_fully_executed_notification(
+                owner_email=contract_owner.email,
+                owner_name=contract_owner.full_name,
+                contract_title=draft.title,
+                contract_draft_id=str(draft.id),
+                deal_name=draft.deal.asset_description if draft.deal.asset_description else "Deal"
+            )
+        except Exception as e:
+            print(f"Failed to send fully executed notification: {str(e)}")
+            # Don't fail the request if email fails
     else:
         draft.status = DraftStatus.PARTIALLY_SIGNED
 
