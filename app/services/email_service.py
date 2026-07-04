@@ -516,6 +516,98 @@ Closeware – AI-Powered Contract Verification
 
         return self._send_email(owner_email, subject, html_body, text_body)
 
+    def send_signature_request_expired(
+        self,
+        owner_email: str,
+        owner_name: str,
+        contract_title: str,
+        signer_name: str,
+        signer_email: str,
+        contract_draft_id: str,
+        expired_at: datetime
+    ):
+        """Send notification that a signature request has expired"""
+        contract_url = f"{self.frontend_url}/contracts/{contract_draft_id}"
+        expired_date = expired_at.strftime("%B %d, %Y")
+
+        subject = f"⏰ Signature Request Expired: {signer_name}"
+
+        html_body = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #1A1A18; background: #FAF9F6; margin: 0; padding: 20px; }}
+        .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
+        h1 {{ font-family: 'Georgia', serif; font-size: 24px; font-weight: 400; color: #1A1A18; margin: 0 0 24px 0; }}
+        .warning-badge {{ display: inline-block; background: rgba(192, 57, 43, 0.1); color: #C0392B; padding: 8px 16px; border-radius: 6px; font-weight: 600; margin-bottom: 24px; }}
+        .contract-info {{ background: #F5F3EE; border-left: 4px solid #C0392B; padding: 16px; margin: 24px 0; border-radius: 4px; }}
+        .button {{ display: inline-block; background: #D4A017; color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 500; margin: 24px 0; }}
+        .button:hover {{ background: #B8860B; }}
+        .footer {{ margin-top: 32px; padding-top: 24px; border-top: 1px solid #E8E6E0; font-size: 13px; color: #6B6B63; }}
+        .icon {{ font-size: 48px; text-align: center; margin-bottom: 16px; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">⏰</div>
+        <h1>Signature Request Expired</h1>
+
+        <div class="warning-badge">Action Required</div>
+
+        <p>Hi {owner_name},</p>
+
+        <p>A signature request has expired without being signed:</p>
+
+        <div class="contract-info">
+            <strong>Contract:</strong> {contract_title}<br>
+            <strong>Requested From:</strong> {signer_name} ({signer_email})<br>
+            <strong>Expired:</strong> {expired_date}
+        </div>
+
+        <p><strong>Next Steps:</strong></p>
+        <ul style="color: #4A4A45;">
+            <li>Review the contract and determine if signature is still needed</li>
+            <li>Send a new signature request with updated terms if necessary</li>
+            <li>Contact {signer_name} directly if urgent</li>
+        </ul>
+
+        <a href="{contract_url}" class="button">View Contract</a>
+
+        <div class="footer">
+            <p>Closeware – AI-Powered Contract Verification<br>
+            Never sign a contract that doesn't match reality.</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+        text_body = f"""
+Signature Request Expired - Action Required
+
+Hi {owner_name},
+
+A signature request has expired without being signed:
+
+Contract: {contract_title}
+Requested From: {signer_name} ({signer_email})
+Expired: {expired_date}
+
+Next Steps:
+- Review the contract and determine if signature is still needed
+- Send a new signature request with updated terms if necessary
+- Contact {signer_name} directly if urgent
+
+View contract: {contract_url}
+
+---
+Closeware – AI-Powered Contract Verification
+"""
+
+        return self._send_email(owner_email, subject, html_body, text_body)
+
 
 # Singleton instance
 email_service = EmailService()
