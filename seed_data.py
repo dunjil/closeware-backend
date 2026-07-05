@@ -18,9 +18,9 @@ def seed_database():
     try:
         print("Creating test organization...")
         org = Organization(
-            name="ASEDO Energy Group",
+            name="Acme Corporation",
             letterhead_config={
-                "company_name": "ASEDO Energy Group",
+                "company_name": "Acme Corporation",
                 "address": "Lagos, Nigeria",
                 "logo_url": None
             }
@@ -34,7 +34,7 @@ def seed_database():
             User(
                 email="duna@asedo.com",
                 hashed_password=get_password_hash(password),
-                full_name="Duna Jilang",
+                full_name="Sarah Johnson",
                 role=UserRole.ADMIN,
                 organization_id=org.id
             ),
@@ -68,7 +68,7 @@ def seed_database():
             agreed_price=4450000000,
             currency="NGN",
             parties={
-                "buyer": "ASEDO Energy Group",
+                "buyer": "Acme Corporation",
                 "seller": "Reign Holdings Limited"
             },
             terms={
@@ -87,7 +87,7 @@ def seed_database():
             title="Project Teranga - Senegal Upstream JV",
             asset_description="Joint venture agreement for upstream oil & gas exploration in Senegal concession area",
             parties={
-                "party_a": "ASEDO Energy Group",
+                "party_a": "Acme Corporation",
                 "party_b": "Petrosen (National Oil Company of Senegal)"
             }
         )
@@ -98,7 +98,7 @@ def seed_database():
         corr1 = Correspondence(
             deal_id=deal1.id,
             correspondence_type=CorrespondenceType.OFFER,
-            sender="ASEDO Energy Group",
+            sender="Acme Corporation",
             recipient="Reign Holdings Limited",
             subject="Offer to Purchase - Reign Restaurant Property",
             content="""Dear Reign Holdings,
@@ -116,9 +116,9 @@ We propose a closing date of September 30, 2026.
 This offer is subject to satisfactory due diligence and verification of all title documents.
 
 Best regards,
-Duna Jilang
+Sarah Johnson
 Chief of Staff
-ASEDO Energy Group""",
+Acme Corporation""",
             correspondence_date=datetime.now() - timedelta(days=45)
         )
         db.add(corr1)
@@ -127,9 +127,9 @@ ASEDO Energy Group""",
             deal_id=deal1.id,
             correspondence_type=CorrespondenceType.COUNTER_OFFER,
             sender="Reign Holdings Limited",
-            recipient="ASEDO Energy Group",
+            recipient="Acme Corporation",
             subject="Re: Offer to Purchase - Reign Restaurant Property",
-            content="""Dear ASEDO Energy Group,
+            content="""Dear Acme Corporation,
 
 Thank you for your offer. We accept the proposed price of ₦4,450,000,000.
 
@@ -150,7 +150,7 @@ Reign Holdings Limited""",
         corr3 = Correspondence(
             deal_id=deal1.id,
             correspondence_type=CorrespondenceType.ANSWER,
-            sender="ASEDO Energy Group",
+            sender="Acme Corporation",
             recipient="Reign Holdings Limited",
             subject="Re: Offer to Purchase - Reign Restaurant Property",
             content="""Dear Reign Holdings,
@@ -162,8 +162,8 @@ We accept the revised payment terms:
 We will proceed with preparation of the Sale and Purchase Agreement reflecting these terms.
 
 Best regards,
-Duna Jilang
-ASEDO Energy Group""",
+Sarah Johnson
+Acme Corporation""",
             correspondence_date=datetime.now() - timedelta(days=35)
         )
         db.add(corr3)

@@ -182,3 +182,61 @@ async def log_status_change(
     db.commit()
 
     return {"message": "Status change logged", "id": str(history_entry.id)}
+
+
+@router.get("/{contract_draft_id}/export/{format}")
+async def export_audit_trail(
+    contract_draft_id: UUID,
+    format: str,  # "pdf" or "docx"
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Export complete audit trail as PDF or DOCX for legal/compliance use.
+    Format: 'pdf' or 'docx'
+    """
+    from fastapi.responses import StreamingResponse
+    from app.services.audit_export_service import audit_export_service
+
+    # Validate format
+    if format not in ["pdf", "docx"]:
+        raise HTTPException(status_code=400, detail="Format must be 'pdf' or 'docx'")
+
+    # Get contract draft
+    draft = db.query(ContractDraft).filter(ContractDraft.id == contract_draft_id).first()
+    if not draft:
+        raise HTTPException(status_code=404, detail="Contract draft not found")
+
+    # TODO: Add authorization check - verify user has access to this deal
+
+    # Get all audit data
+    status_changes = db.query(ContractStatusHistory).filter(
+        ContractStatusHistory.contract_draft_id == contract_draft_id
+    ).order_by(ContractStatusHistory.changed_at).all()
+
+    reviews = db.query(InternalReview).filter(
+        InternalReview.contract_draft_id == contract_draft_id
+    ).order_by(InternalReview.reviewed_at).all()
+
+    signatures = db.query(SignatureRequest).filter(
+        SignatureRequest.contract_draft_id == contract_draft_id
+    ).order_by(SignatureRequest.requested_at).all()
+
+    # Generate export
+    if format == "pdf":
+        buffer = audit_export_service.export_to_pdf(draft, status_changes, reviews, signatures)
+        media_type = "application/pdf"
+        filename = f"audit_trail_{draft.title.replace(' ', '_')}_{datetime.utcnow().strftime('%Y%m%d')}.pdf"
+    else:  # docx
+        buffer = audit_export_service.export_to_docx(draft, status_changes, reviews, signatures)
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        filename = f"audit_trail_{draft.title.replace(' ', '_')}_{datetime.utcnow().strftime('%Y%m%d')}.docx"
+
+    # Return file
+    return StreamingResponse(
+        buffer,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )

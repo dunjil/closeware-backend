@@ -16,7 +16,7 @@ class UserRole(str, enum.Enum):
 
 
 class UserType(str, enum.Enum):
-    INTERNAL = "internal"  # Part of an organization (ASEDO employee)
+    INTERNAL = "internal"  # Part of the organization (company employee)
     EXTERNAL = "external"  # External collaborator (seller's lawyer, etc.)
 
 
