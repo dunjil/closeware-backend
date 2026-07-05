@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
 from uuid import UUID
@@ -18,13 +18,13 @@ router = APIRouter()
 
 class StatusChangeResponse(BaseModel):
     id: UUID
-    old_status: str | None
+    old_status: Optional[str]
     new_status: str
     changed_by_name: str
     changed_by_email: str
-    reason: str | None
+    reason: Optional[str]
     changed_at: datetime
-    ip_address: str | None
+    ip_address: Optional[str]
 
     class Config:
         from_attributes = True
@@ -35,10 +35,10 @@ class ReviewHistoryResponse(BaseModel):
     reviewer_name: str
     reviewer_email: str
     action: str
-    comments: str | None
+    comments: Optional[str]
     draft_version: int
     reviewed_at: datetime
-    ip_address: str | None
+    ip_address: Optional[str]
 
     class Config:
         from_attributes = True
@@ -51,8 +51,8 @@ class SignatureHistoryResponse(BaseModel):
     signer_role: str
     status: str
     requested_at: datetime
-    signed_at: datetime | None
-    declined_at: datetime | None
+    signed_at: Optional[datetime]
+    declined_at: Optional[datetime]
 
     class Config:
         from_attributes = True
@@ -156,9 +156,9 @@ async def get_contract_audit_trail(
 @router.post("/{contract_draft_id}/log-status-change")
 async def log_status_change(
     contract_draft_id: UUID,
-    old_status: str | None,
+    old_status: Optional[str],
     new_status: str,
-    reason: str | None = None,
+    reason: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):

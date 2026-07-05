@@ -18,12 +18,34 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Add new statuses to DraftStatus enum
+    # Create DraftStatus enum if it doesn't exist
     op.execute("""
-        ALTER TYPE draftstatus ADD VALUE IF NOT EXISTS 'ready_for_signing';
-        ALTER TYPE draftstatus ADD VALUE IF NOT EXISTS 'awaiting_signatures';
-        ALTER TYPE draftstatus ADD VALUE IF NOT EXISTS 'partially_signed';
-        ALTER TYPE draftstatus ADD VALUE IF NOT EXISTS 'fully_executed';
+        DO $$ BEGIN
+            CREATE TYPE draftstatus AS ENUM (
+                'internal_draft',
+                'in_review',
+                'approved',
+                'rejected',
+                'sent_to_client',
+                'ready_for_signing',
+                'awaiting_signatures',
+                'partially_signed',
+                'fully_executed'
+            );
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+    """)
+
+    # Convert status column from String to ENUM if needed
+    op.execute("""
+        DO $$ BEGIN
+            ALTER TABLE contract_drafts
+            ALTER COLUMN status TYPE draftstatus
+            USING status::draftstatus;
+        EXCEPTION
+            WHEN OTHERS THEN null;
+        END $$;
     """)
 
     # Create SignatureRole enum
@@ -44,8 +66,8 @@ def upgrade() -> None:
         sa.Column('signer_name', sa.String(), nullable=False),
         sa.Column('signer_email', sa.String(), nullable=False),
         sa.Column('signer_title', sa.String(), nullable=True),
-        sa.Column('signer_role', postgresql.ENUM('buyer', 'seller', 'witness', 'guarantor', 'other', name='signaturerole'), nullable=False),
-        sa.Column('status', postgresql.ENUM('pending', 'signed', 'declined', 'expired', name='signaturerequeststatus'), nullable=False),
+        sa.Column('signer_role', sa.String(), nullable=False),
+        sa.Column('status', sa.String(), nullable=False),
         sa.Column('request_message', sa.String(), nullable=True),
         sa.Column('access_token', sa.String(), nullable=False, unique=True),
         sa.Column('requested_by_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('users.id'), nullable=False),

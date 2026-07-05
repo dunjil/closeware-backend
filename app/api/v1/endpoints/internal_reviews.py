@@ -4,7 +4,7 @@ from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
 
-from app.db.session import get_db
+from app.db.base import get_db
 from app.models import InternalReview, ContractDraft, User, DraftStatus, ReviewAction
 from app.schemas.internal_review import InternalReview as InternalReviewSchema, InternalReviewCreate
 from app.api.dependencies import get_current_user

@@ -2,21 +2,27 @@
 Offer Letter Generation Service
 Generates professional offer/counter-offer letters on company letterhead using AI.
 """
-import os
 from typing import Optional
 from anthropic import Anthropic
 from datetime import datetime
 
 from app.models.deal import Deal
 from app.models.organization import Organization
+from app.core.config import settings
 
 
 class OfferLetterGenerator:
     """Generate professional business letters for deal negotiations"""
 
     def __init__(self):
-        self.client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        self.client = None
         self.model = "claude-sonnet-4-20250514"
+
+    def _get_client(self):
+        """Lazy initialization of Anthropic client"""
+        if self.client is None:
+            self.client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+        return self.client
 
     def generate_offer_letter(
         self,
@@ -100,7 +106,7 @@ FORMAT:
 
 Generate the complete letter now, ready to be reviewed and signed."""
 
-        response = self.client.messages.create(
+        response = self._get_client().messages.create(
             model=self.model,
             max_tokens=4000,
             temperature=0.7,
@@ -148,7 +154,7 @@ Write a professional letter that:
 
 Keep it brief (1 page) and focused on moving the process forward."""
 
-        response = self.client.messages.create(
+        response = self._get_client().messages.create(
             model=self.model,
             max_tokens=2000,
             temperature=0.7,

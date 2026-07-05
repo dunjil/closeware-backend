@@ -6,7 +6,7 @@ from app.models.document import Document
 from app.models.contract_draft import ContractDraft, DraftStatus
 from app.models.contract_status_history import ContractStatusHistory
 from app.models.discrepancy_report import DiscrepancyReport, DiscrepancyItem
-from app.models.internal_review import InternalReview, ReviewAction
+from app.models.internal_review import InternalReview, ReviewAction, VALID_TRANSITIONS
 from app.models.deal_collaborator import DealCollaborator, CollaboratorRole
 from app.models.pending_external_user import PendingExternalUser, InviteStatus
 from app.models.subscription import Subscription, SubscriptionTier, SubscriptionStatus, BillingPeriod
@@ -28,6 +28,7 @@ __all__ = [
     "DiscrepancyItem",
     "InternalReview",
     "ReviewAction",
+    "VALID_TRANSITIONS",
     "DealCollaborator",
     "CollaboratorRole",
     "PendingExternalUser",

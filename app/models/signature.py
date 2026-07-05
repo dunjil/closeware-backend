@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, Text, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
-from app.database import Base
+from app.db.base import Base
 
 
 class Signature(Base):

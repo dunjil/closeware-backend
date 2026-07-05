@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
 
-from app.db.session import get_db
+from app.db.base import get_db
 from app.models.signature import Signature
 from app.models.contract_draft import ContractDraft
-from app.api.deps import get_current_user
+from app.api.dependencies import get_current_user
 
 router = APIRouter()
 
@@ -15,7 +15,7 @@ router = APIRouter()
 class SignatureCreate(BaseModel):
     signer_name: str
     signer_title: str
-    signer_email: str | None = None
+    signer_email: Optional[str] = None
     signature_data: str  # SVG path or base64
     signature_type: str = "drawn"
     is_buyer: bool = True
@@ -26,7 +26,7 @@ class SignatureResponse(BaseModel):
     contract_draft_id: str
     signer_name: str
     signer_title: str
-    signer_email: str | None
+    signer_email: Optional[str]
     signature_type: str
     signed_at: datetime
     is_buyer: bool

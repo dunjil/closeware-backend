@@ -4,7 +4,7 @@ from typing import List
 from uuid import UUID
 from datetime import datetime, timedelta
 
-from app.db.session import get_db
+from app.db.base import get_db
 from app.models import (
     User, Deal, PendingExternalUser, DealCollaborator,
     InviteStatus, UserType, CollaboratorRole

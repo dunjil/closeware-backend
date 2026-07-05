@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 from datetime import datetime, timedelta
 
-from app.db.session import get_db
+from app.db.base import get_db
 from app.models import (
     User, Organization, Subscription, Invoice, UsageRecord,
     SubscriptionTier, SubscriptionStatus, BillingPeriod,
@@ -34,8 +34,8 @@ class SubscriptionResponse(BaseModel):
     overage_price: float
     current_period_start: str
     current_period_end: str
-    trial_ends_at: str | None
-    usage_summary: dict | None = None
+    trial_ends_at: Optional[str]
+    usage_summary: Optional[dict] = None
 
     class Config:
         from_attributes = True

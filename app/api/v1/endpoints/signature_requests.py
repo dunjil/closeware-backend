@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel, EmailStr
 from datetime import datetime, timedelta
 from uuid import UUID
@@ -20,9 +20,9 @@ router = APIRouter()
 class SignatureRequestCreate(BaseModel):
     signer_name: str
     signer_email: EmailStr
-    signer_title: str | None = None
+    signer_title: Optional[str] = None
     signer_role: SignatureRole
-    request_message: str | None = None
+    request_message: Optional[str] = None
     expires_in_days: int = 30
 
 
@@ -31,12 +31,12 @@ class SignatureRequestResponse(BaseModel):
     contract_draft_id: UUID
     signer_name: str
     signer_email: str
-    signer_title: str | None
+    signer_title: Optional[str]
     signer_role: SignatureRole
     status: SignatureRequestStatus
     requested_at: datetime
-    expires_at: datetime | None
-    signed_at: datetime | None
+    expires_at: Optional[datetime]
+    signed_at: Optional[datetime]
 
     class Config:
         from_attributes = True
@@ -265,7 +265,7 @@ async def fulfill_signature_request(
 @router.post("/{request_id}/decline")
 async def decline_signature_request(
     request_id: UUID,
-    reason: str | None = None,
+    reason: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     """Decline a signature request"""

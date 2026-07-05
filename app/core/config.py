@@ -5,6 +5,7 @@ from typing import List
 class Settings(BaseSettings):
     DATABASE_URL: str
     SECRET_KEY: str
+    ALGORITHM: str = "HS256"
     ANTHROPIC_API_KEY: str
     ENVIRONMENT: str = "development"
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000"]
@@ -13,6 +14,7 @@ class Settings(BaseSettings):
     MAILERSEND_API_KEY: str = ""  # MailerSend API key for sending emails
     FROM_EMAIL: str = "noreply@closeware.com"
     FROM_NAME: str = "Closeware"
+    CRON_SECRET_TOKEN: str = ""  # Secret token for cron job authentication
 
     class Config:
         env_file = ".env"
