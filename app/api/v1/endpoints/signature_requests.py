@@ -12,6 +12,7 @@ from app.models.signature import Signature
 from app.api.dependencies import get_current_user
 from app.models.user import User
 from app.services.email_service import email_service
+from app.utils.status_logger import update_status_with_logging
 
 router = APIRouter()
 
@@ -93,8 +94,14 @@ async def mark_contract_ready_for_signing(
                 detail=f"Signature request already exists for {signer_data.signer_email}"
             )
 
-    # Update status
-    draft.status = DraftStatus.AWAITING_SIGNATURES
+    # Update status and log the change
+    update_status_with_logging(
+        db=db,
+        contract_draft=draft,
+        new_status=DraftStatus.AWAITING_SIGNATURES,
+        changed_by=current_user,
+        reason=f"Signature requests sent to {len(request.signers)} signers"
+    )
 
     # Create signature requests
     signature_requests = []
@@ -209,15 +216,22 @@ async def fulfill_signature_request(
 
     all_signed = all([req.status == SignatureRequestStatus.SIGNED for req in all_requests])
 
+    # Get contract owner for logging (use requester of signatures)
+    first_request = all_requests[0]
+    contract_owner = first_request.requested_by
+
     if all_signed:
-        draft.status = DraftStatus.FULLY_EXECUTED
+        # Update status and log the change
+        update_status_with_logging(
+            db=db,
+            contract_draft=draft,
+            new_status=DraftStatus.FULLY_EXECUTED,
+            changed_by=contract_owner,  # Log as contract owner
+            reason=f"All {len(all_requests)} signatures collected"
+        )
 
         # Send notification to contract owner
         try:
-            # Get the user who requested signatures (contract owner)
-            first_request = all_requests[0]
-            contract_owner = first_request.requested_by
-
             email_service.send_contract_fully_executed_notification(
                 owner_email=contract_owner.email,
                 owner_name=contract_owner.full_name,
@@ -229,7 +243,15 @@ async def fulfill_signature_request(
             print(f"Failed to send fully executed notification: {str(e)}")
             # Don't fail the request if email fails
     else:
-        draft.status = DraftStatus.PARTIALLY_SIGNED
+        # Update status and log the change
+        signed_count = sum(1 for req in all_requests if req.status == SignatureRequestStatus.SIGNED)
+        update_status_with_logging(
+            db=db,
+            contract_draft=draft,
+            new_status=DraftStatus.PARTIALLY_SIGNED,
+            changed_by=contract_owner,
+            reason=f"{signed_count} of {len(all_requests)} signatures collected"
+        )
 
     db.commit()
 

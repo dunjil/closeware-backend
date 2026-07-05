@@ -9,6 +9,7 @@ from app.models import InternalReview, ContractDraft, User, DraftStatus, ReviewA
 from app.schemas.internal_review import InternalReview as InternalReviewSchema, InternalReviewCreate
 from app.api.dependencies import get_current_user
 from app.services.workflow_manager import WorkflowManager, WorkflowError
+from app.utils.status_logger import update_status_with_logging
 
 router = APIRouter()
 
@@ -96,18 +97,50 @@ def create_internal_review(
     )
     db.add(db_review)
 
-    # Update draft status based on action
+    # Update draft status based on action (with logging)
     if action_enum == ReviewAction.REQUEST_REVIEW:
-        draft.status = DraftStatus.PENDING_INTERNAL_REVIEW
+        update_status_with_logging(
+            db=db,
+            contract_draft=draft,
+            new_status=DraftStatus.PENDING_INTERNAL_REVIEW,
+            changed_by=current_user,
+            reason=f"Requested review from {draft.current_reviewer.full_name if reviewee_id else 'reviewer'}",
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
         draft.current_reviewer_id = reviewee_id
     elif action_enum == ReviewAction.REQUEST_REVISIONS:
-        draft.status = DraftStatus.PENDING_REVISIONS
+        update_status_with_logging(
+            db=db,
+            contract_draft=draft,
+            new_status=DraftStatus.PENDING_REVISIONS,
+            changed_by=current_user,
+            reason=review.comments if hasattr(review, 'comments') and review.comments else "Revisions requested",
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
         draft.current_reviewer_id = reviewee_id
     elif action_enum == ReviewAction.APPROVE:
-        draft.status = DraftStatus.APPROVED
+        update_status_with_logging(
+            db=db,
+            contract_draft=draft,
+            new_status=DraftStatus.APPROVED,
+            changed_by=current_user,
+            reason=f"Approved by {current_user.full_name}",
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
         draft.current_reviewer_id = None
     elif action_enum == ReviewAction.SEND_EXTERNAL:
-        draft.status = DraftStatus.SENT_TO_COUNTERPARTY
+        update_status_with_logging(
+            db=db,
+            contract_draft=draft,
+            new_status=DraftStatus.SENT_TO_COUNTERPARTY,
+            changed_by=current_user,
+            reason=f"Sent to external party: {review.sent_to_party_name if hasattr(review, 'sent_to_party_name') else 'counterparty'}",
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
         draft.sent_externally_at = datetime.utcnow()
         draft.current_reviewer_id = None
         # Extract external party info if provided
