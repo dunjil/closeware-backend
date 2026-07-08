@@ -77,22 +77,25 @@ async def signup(signup_data: SignupRequest, db: Session = Depends(get_db)):
         db.add(new_user)
         db.flush()
 
-        # Step 3: Create Pro trial subscription (30 days)
-        # BLOCKER FIX: Auto-create trial so user can start using product immediately
-        trial_ends = datetime.utcnow() + timedelta(days=30)
-        pricing = Subscription.get_tier_pricing(SubscriptionTier.PRO)
+        # Step 3: Create FREE tier subscription (permanent, no trial)
+        # New users start on FREE tier with 2 deals/month
+        from app.models.subscription import BillingPeriod
+
+        now = datetime.utcnow()
+        period_end = now + timedelta(days=30)  # First billing period
+        pricing = Subscription.get_tier_pricing(SubscriptionTier.FREE, BillingPeriod.MONTHLY)
 
         subscription = Subscription(
             organization_id=new_org.id,
-            tier=SubscriptionTier.PRO,
-            status=SubscriptionStatus.TRIAL,
-            billing_period="monthly",
-            base_price=pricing["base_price"],
-            included_deals=pricing["included_deals"],
-            overage_price=pricing["overage_price"],
-            current_period_start=datetime.utcnow(),
-            current_period_end=trial_ends,
-            trial_ends_at=trial_ends
+            tier=SubscriptionTier.FREE,
+            status=SubscriptionStatus.ACTIVE,  # FREE is always active
+            billing_period=BillingPeriod.MONTHLY,
+            currency="USD",
+            base_price=pricing["base_price"],  # $0
+            deal_limit=pricing["deal_limit"],  # 2 deals/month
+            current_period_start=now,
+            current_period_end=period_end,
+            trial_ends_at=None  # No trial, FREE is permanent
         )
         db.add(subscription)
         db.flush()

@@ -19,11 +19,57 @@ async def create_deal(
     from app.core.validation import sanitize_string
     from app.models.user import User
     from app.models.organization import Organization
+    from app.models.subscription import Subscription
 
     # Validate organization exists
     org = db.query(Organization).filter(Organization.id == organization_id).first()
     if not org:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found")
+
+    # Check subscription and deal limit
+    subscription = db.query(Subscription).filter(
+        Subscription.organization_id == organization_id
+    ).first()
+
+    if not subscription:
+        # Create FREE subscription automatically if missing
+        from app.models.subscription import BillingPeriod
+        from datetime import datetime, timedelta
+
+        now = datetime.utcnow()
+        period_end = now + timedelta(days=30)
+        pricing = Subscription.get_tier_pricing(SubscriptionTier.FREE, BillingPeriod.MONTHLY)
+
+        subscription = Subscription(
+            organization_id=organization_id,
+            tier=SubscriptionTier.FREE,
+            status=SubscriptionStatus.ACTIVE,
+            billing_period=BillingPeriod.MONTHLY,
+            currency="USD",
+            base_price=pricing["base_price"],
+            deal_limit=pricing["deal_limit"],
+            current_period_start=now,
+            current_period_end=period_end,
+            trial_ends_at=None
+        )
+        db.add(subscription)
+        db.flush()
+
+    # Check if can create deal
+    can_create = subscription.can_create_deal(db)
+    if not can_create:
+        deals_used = subscription.deals_used_this_period(db)
+        deal_limit = subscription.deal_limit
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "deal_limit_reached",
+                "message": f"You've reached your limit of {deal_limit} deals this month. Please upgrade your plan to create more deals.",
+                "tier": subscription.tier.value,
+                "deals_used": deals_used,
+                "deal_limit": deal_limit
+            }
+        )
 
     # Validate creator exists and belongs to organization
     creator = db.query(User).filter(User.id == creator_id).first()
@@ -53,6 +99,23 @@ async def create_deal(
         terms=deal_data.terms
     )
     db.add(new_deal)
+    db.flush()  # Get deal ID before creating usage record
+
+    # Create usage record to track this deal against subscription
+    if subscription:
+        from app.models.usage_record import UsageRecord, UsageType
+
+        usage_record = UsageRecord(
+            subscription_id=subscription.id,
+            organization_id=organization_id,
+            user_id=creator_id,
+            deal_id=new_deal.id,
+            usage_type=UsageType.DEAL_CREATED,
+            quantity=1,
+            description=f"Deal created: {title}"
+        )
+        db.add(usage_record)
+
     db.commit()
     db.refresh(new_deal)
 

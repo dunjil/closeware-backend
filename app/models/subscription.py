@@ -8,9 +8,10 @@ from app.db.base import Base
 
 
 class SubscriptionTier(str, enum.Enum):
-    LITE = "lite"  # $180/month, 1 deal included, $145 per extra
-    PRO = "pro"  # $360/month, 2 deals included, $120 per extra
-    ENTERPRISE = "enterprise"  # $1,200/month, 10 deals included, $95 per extra
+    FREE = "free"  # $0/month, 2 deals/month
+    PRO = "pro"  # $99/month or $950/year, 20 deals/month
+    TEAM = "team"  # $299/month or $2,850/year, 100 deals/month
+    ENTERPRISE = "enterprise"  # Custom pricing, unlimited deals
 
 
 class SubscriptionStatus(str, enum.Enum):
@@ -37,15 +38,14 @@ class Subscription(Base):
     organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, unique=True)
 
     # Subscription details
-    tier = Column(Enum(SubscriptionTier), nullable=False, default=SubscriptionTier.PRO)
+    tier = Column(Enum(SubscriptionTier), nullable=False, default=SubscriptionTier.FREE)
     billing_period = Column(Enum(BillingPeriod), nullable=False, default=BillingPeriod.MONTHLY)
     status = Column(Enum(SubscriptionStatus), nullable=False, default=SubscriptionStatus.TRIAL)
 
-    # Pricing (in organization's currency)
-    currency = Column(String(3), nullable=False, default="USD")  # ISO 4217 currency code (USD, EUR, GBP, NGN, AED, etc.)
-    base_price = Column(Numeric(precision=12, scale=2), nullable=False)  # Monthly/annual base price
-    included_deals = Column(Integer, nullable=False)  # Deals included in base price
-    overage_price = Column(Numeric(precision=12, scale=2), nullable=False)  # Price per additional deal
+    # Pricing
+    currency = Column(String(3), nullable=False, default="USD")
+    base_price = Column(Numeric(precision=12, scale=2), nullable=False)  # Monthly/annual subscription price
+    deal_limit = Column(Integer, nullable=True)  # Max deals per period (None = unlimited for Enterprise)
 
     # Billing cycle dates
     current_period_start = Column(DateTime, nullable=False)
@@ -87,89 +87,87 @@ class Subscription(Base):
         )
         return count
 
-    def overage_deals_this_period(self, db) -> int:
-        """Calculate how many deals exceed the included amount"""
-        used = self.deals_used_this_period(db)
-        overage = max(0, used - self.included_deals)
-        return overage
+    def can_create_deal(self, db) -> bool:
+        """Check if organization can create another deal this period"""
+        # Enterprise has unlimited deals
+        if self.tier == SubscriptionTier.ENTERPRISE:
+            return True
 
-    def calculate_period_cost(self, db) -> float:
-        """Calculate total cost for current period (base + overages)"""
-        overage_count = self.overage_deals_this_period(db)
-        overage_cost = overage_count * float(self.overage_price)
-        total = float(self.base_price) + overage_cost
-        return total
+        # Free tier during trial
+        if self.tier == SubscriptionTier.FREE and self.is_trial():
+            return True
+
+        # Check against limit
+        if self.deal_limit is None:
+            return True
+
+        used = self.deals_used_this_period(db)
+        return used < self.deal_limit
+
+    def deals_remaining_this_period(self, db) -> int:
+        """Get number of deals remaining in current period"""
+        if self.deal_limit is None:  # Unlimited (Enterprise)
+            return float('inf')
+
+        used = self.deals_used_this_period(db)
+        remaining = max(0, self.deal_limit - used)
+        return remaining
 
     @staticmethod
     def get_tier_pricing(tier: SubscriptionTier, billing_period: BillingPeriod = BillingPeriod.MONTHLY, currency: str = "USD"):
         """
-        Get pricing details for a subscription tier in specified currency.
-        Global pricing - supports USD, EUR, GBP, NGN, AED, and more.
+        Get pricing details for a subscription tier.
+        Simple monthly/yearly pricing with hard limits (no overage charges).
         """
-        # Base pricing in USD (global standard)
+        # Base pricing in USD
         base_pricing_usd = {
-            SubscriptionTier.LITE: {
+            SubscriptionTier.FREE: {
                 BillingPeriod.MONTHLY: {
-                    "base_price": 180,
-                    "included_deals": 1,
-                    "overage_price": 145
+                    "base_price": 0,
+                    "deal_limit": 2,  # 2 deals per month
                 },
                 BillingPeriod.ANNUAL: {
-                    "base_price": 1800,  # 10 months price (2 months free)
-                    "included_deals": 12,
-                    "overage_price": 145
+                    "base_price": 0,
+                    "deal_limit": 24,  # 24 deals per year (2/month)
                 }
             },
             SubscriptionTier.PRO: {
                 BillingPeriod.MONTHLY: {
-                    "base_price": 360,
-                    "included_deals": 2,
-                    "overage_price": 120
+                    "base_price": 99,
+                    "deal_limit": 20,  # 20 deals per month
                 },
                 BillingPeriod.ANNUAL: {
-                    "base_price": 3600,  # 10 months price (2 months free)
-                    "included_deals": 24,
-                    "overage_price": 120
+                    "base_price": 950,  # ~20% discount ($99 * 12 = $1,188)
+                    "deal_limit": 240,  # 240 deals per year (20/month)
+                }
+            },
+            SubscriptionTier.TEAM: {
+                BillingPeriod.MONTHLY: {
+                    "base_price": 299,
+                    "deal_limit": 100,  # 100 deals per month
+                },
+                BillingPeriod.ANNUAL: {
+                    "base_price": 2850,  # ~20% discount ($299 * 12 = $3,588)
+                    "deal_limit": 1200,  # 1200 deals per year (100/month)
                 }
             },
             SubscriptionTier.ENTERPRISE: {
                 BillingPeriod.MONTHLY: {
-                    "base_price": 1200,
-                    "included_deals": 10,
-                    "overage_price": 95
+                    "base_price": None,  # Custom pricing
+                    "deal_limit": None,  # Unlimited
                 },
                 BillingPeriod.ANNUAL: {
-                    "base_price": 12000,  # 10 months price
-                    "included_deals": 120,
-                    "overage_price": 95
+                    "base_price": None,  # Custom pricing
+                    "deal_limit": None,  # Unlimited
                 }
             }
         }
 
-        # Currency conversion multipliers (approximate, update with real-time rates in production)
-        currency_multipliers = {
-            "USD": 1.0,
-            "EUR": 0.92,
-            "GBP": 0.81,
-            "NGN": 416.0,  # Nigerian Naira
-            "AED": 3.67,   # UAE Dirham
-            "ZAR": 18.5,   # South African Rand
-            "KES": 130.0,  # Kenyan Shilling
-            "GHS": 12.0,   # Ghanaian Cedi
-            "EGP": 31.0,   # Egyptian Pound
-            "SAR": 3.75,   # Saudi Riyal
-            "QAR": 3.64,   # Qatari Riyal
-        }
-
-        # Get base pricing in USD
-        usd_pricing = base_pricing_usd[tier][billing_period]
-
-        # Convert to requested currency
-        multiplier = currency_multipliers.get(currency.upper(), 1.0)
+        # Get pricing in USD (no currency conversion for now - keep it simple)
+        pricing = base_pricing_usd[tier][billing_period]
 
         return {
-            "base_price": round(usd_pricing["base_price"] * multiplier, 2),
-            "included_deals": usd_pricing["included_deals"],
-            "overage_price": round(usd_pricing["overage_price"] * multiplier, 2),
-            "currency": currency.upper()
+            "base_price": pricing["base_price"],
+            "deal_limit": pricing["deal_limit"],
+            "currency": "USD"
         }

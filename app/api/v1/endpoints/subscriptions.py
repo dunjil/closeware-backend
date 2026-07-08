@@ -382,3 +382,128 @@ def get_invoice(
         "notes": invoice.notes,
         "created_at": invoice.created_at.isoformat(),
     }
+
+
+# ==========================================
+# NEW ENDPOINTS - Simple Subscription Model
+# ==========================================
+
+class DealUsageResponse(BaseModel):
+    """Response for deal usage in the current billing period"""
+    tier: str
+    billing_period: str
+    deal_limit: Optional[int]  # None = unlimited (Enterprise)
+    deals_used: int
+    deals_remaining: Optional[int]  # None = unlimited
+    can_create_deal: bool
+    should_upgrade: bool  # True if at 80%+ of limit
+    usage_percentage: Optional[float]  # None if unlimited
+    period_start: str
+    period_end: str
+
+
+class UpgradeRecommendationResponse(BaseModel):
+    """Recommended upgrade tier based on usage"""
+    current_tier: str
+    recommended_tier: str
+    reason: str
+    monthly_price: Optional[float]
+    yearly_price: Optional[float]
+
+
+@router.get("/deal-usage", response_model=DealUsageResponse)
+def get_deal_usage(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get deal usage for the current billing period.
+    Shows how many deals used, remaining, and whether user can create more.
+    """
+    if current_user.user_type != UserType.INTERNAL or not current_user.organization_id:
+        raise HTTPException(status_code=403, detail="Only organization members can view usage")
+
+    subscription = db.query(Subscription).filter(
+        Subscription.organization_id == current_user.organization_id
+    ).first()
+
+    if not subscription:
+        raise HTTPException(status_code=404, detail="No subscription found")
+
+    # Get usage stats
+    deals_used = subscription.deals_used_this_period(db)
+    can_create = subscription.can_create_deal(db)
+
+    # Calculate remaining and percentage
+    if subscription.deal_limit is None:
+        # Unlimited (Enterprise)
+        deals_remaining = None
+        usage_percentage = None
+        should_upgrade = False
+    else:
+        deals_remaining = subscription.deals_remaining_this_period(db)
+        usage_percentage = (deals_used / subscription.deal_limit * 100) if subscription.deal_limit > 0 else 0
+        should_upgrade = usage_percentage >= 80
+
+    return DealUsageResponse(
+        tier=subscription.tier.value,
+        billing_period=subscription.billing_period.value,
+        deal_limit=subscription.deal_limit,
+        deals_used=deals_used,
+        deals_remaining=deals_remaining,
+        can_create_deal=can_create,
+        should_upgrade=should_upgrade,
+        usage_percentage=usage_percentage,
+        period_start=subscription.current_period_start.isoformat(),
+        period_end=subscription.current_period_end.isoformat()
+    )
+
+
+@router.get("/upgrade-recommendation", response_model=UpgradeRecommendationResponse)
+def get_upgrade_recommendation_endpoint(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get recommended upgrade tier based on current usage.
+    """
+    if current_user.user_type != UserType.INTERNAL or not current_user.organization_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    subscription = db.query(Subscription).filter(
+        Subscription.organization_id == current_user.organization_id
+    ).first()
+
+    if not subscription:
+        raise HTTPException(status_code=404, detail="No subscription found")
+
+    current_tier = subscription.tier
+    deals_used = subscription.deals_used_this_period(db)
+
+    # Determine recommendation
+    if current_tier == SubscriptionTier.FREE:
+        recommended_tier = SubscriptionTier.PRO
+        reason = f"You've used {deals_used} of 2 deals this month. Upgrade to Pro for 20 deals/month."
+        monthly_price = 99.0
+        yearly_price = 950.0
+    elif current_tier == SubscriptionTier.PRO:
+        recommended_tier = SubscriptionTier.TEAM
+        reason = f"You've used {deals_used} of 20 deals. Upgrade to Team for 100 deals/month and team features."
+        monthly_price = 299.0
+        yearly_price = 2850.0
+    elif current_tier == SubscriptionTier.TEAM:
+        recommended_tier = SubscriptionTier.ENTERPRISE
+        reason = f"You've used {deals_used} of 100 deals. Contact us for Enterprise unlimited deals."
+        monthly_price = None
+        yearly_price = None
+    else:
+        # Already on Enterprise
+        raise HTTPException(status_code=400, detail="Already on highest tier")
+
+    return UpgradeRecommendationResponse(
+        current_tier=current_tier.value,
+        recommended_tier=recommended_tier.value,
+        reason=reason,
+        monthly_price=monthly_price,
+        yearly_price=yearly_price
+    )

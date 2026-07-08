@@ -12,6 +12,7 @@ from app.models.pending_external_user import PendingExternalUser, InviteStatus
 from app.models.subscription import Subscription, SubscriptionTier, SubscriptionStatus, BillingPeriod
 from app.models.usage_record import UsageRecord, UsageType
 from app.models.invoice import Invoice, InvoiceStatus
+from app.models.credit_transaction import CreditTransaction, TransactionType
 
 __all__ = [
     "User",
@@ -41,4 +42,6 @@ __all__ = [
     "UsageType",
     "Invoice",
     "InvoiceStatus",
+    "CreditTransaction",
+    "TransactionType",
 ]
