@@ -33,7 +33,7 @@ class UsageRecord(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     # Metadata
-    description = Column(String, nullable=True)  # "Generated SPA for Reign Restaurant deal"
+    description = Column(String, nullable=True)  # "Generated SPA for Summit Restaurant deal"
 
     # Billing period this belongs to
     billing_period_start = Column(DateTime, nullable=False)

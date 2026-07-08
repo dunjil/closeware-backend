@@ -63,13 +63,13 @@ def seed_database():
             creator_id=users[0].id,
             deal_type=DealType.PROPERTY,
             status=DealStatus.NEGOTIATING,
-            title="Reign Restaurant Property Acquisition",
+            title="Summit Restaurant Property Acquisition",
             asset_description="Commercial property including restaurant building and land, located in prime Lagos district. Total plot size 5,000 sqm.",
             agreed_price=4450000000,
             currency="NGN",
             parties={
                 "buyer": "Acme Corporation",
-                "seller": "Reign Holdings Limited"
+                "seller": "Summit Holdings Limited"
             },
             terms={
                 "payment_schedule": "30% deposit, 70% on completion",
@@ -99,11 +99,11 @@ def seed_database():
             deal_id=deal1.id,
             correspondence_type=CorrespondenceType.OFFER,
             sender="Acme Corporation",
-            recipient="Reign Holdings Limited",
-            subject="Offer to Purchase - Reign Restaurant Property",
-            content="""Dear Reign Holdings,
+            recipient="Summit Holdings Limited",
+            subject="Offer to Purchase - Summit Restaurant Property",
+            content="""Dear Summit Holdings,
 
-We are pleased to submit our formal offer to acquire the commercial property known as Reign Restaurant, located at [ADDRESS].
+We are pleased to submit our formal offer to acquire the commercial property known as Summit Restaurant, located at [ADDRESS].
 
 Proposed Purchase Price: ₦4,450,000,000 (Four Billion, Four Hundred and Fifty Million Naira)
 
@@ -126,9 +126,9 @@ Acme Corporation""",
         corr2 = Correspondence(
             deal_id=deal1.id,
             correspondence_type=CorrespondenceType.COUNTER_OFFER,
-            sender="Reign Holdings Limited",
+            sender="Summit Holdings Limited",
             recipient="Acme Corporation",
-            subject="Re: Offer to Purchase - Reign Restaurant Property",
+            subject="Re: Offer to Purchase - Summit Restaurant Property",
             content="""Dear Acme Corporation,
 
 Thank you for your offer. We accept the proposed price of ₦4,450,000,000.
@@ -142,7 +142,7 @@ We agree to the September 30, 2026 closing date.
 Please confirm acceptance of these revised terms.
 
 Regards,
-Reign Holdings Limited""",
+Summit Holdings Limited""",
             correspondence_date=datetime.now() - timedelta(days=38)
         )
         db.add(corr2)
@@ -151,9 +151,9 @@ Reign Holdings Limited""",
             deal_id=deal1.id,
             correspondence_type=CorrespondenceType.ANSWER,
             sender="Acme Corporation",
-            recipient="Reign Holdings Limited",
-            subject="Re: Offer to Purchase - Reign Restaurant Property",
-            content="""Dear Reign Holdings,
+            recipient="Summit Holdings Limited",
+            subject="Re: Offer to Purchase - Summit Restaurant Property",
+            content="""Dear Summit Holdings,
 
 We accept the revised payment terms:
 - 40% deposit upon execution of SPA
